@@ -2,14 +2,20 @@
 
 namespace PeteKlein\WP\PostCollection;
 
-class PostCollection
+abstract class PostCollection
 {
-    public function __construct()
+    public $postType;
+    public $posts = [];
+
+    public function __construct(array $posts = [])
     {
+        foreach ($posts as $post) {
+            $this->addPost($post);
+        }
     }
-    
-    public function test()
+
+    public function addPost(\WP_Post $post)
     {
-        echo 'Testing';
+        $this->posts[] = $post;
     }
 }
