@@ -1,6 +1,6 @@
 <?php
 
-namespace PeteKlein\WP;
+namespace PeteKlein\WP\PostCollection;
 
 class PostCollection
 {
