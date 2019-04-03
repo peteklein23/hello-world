@@ -1,23 +1,15 @@
 <?php
 
-namespace PeteKlein\WPEfficientMeta;
+namespace PeteKlein\WP;
 
-class MetaList
+class PostCollection
 {
-    public $key = [];
-    public $default = [];
-    public $validationRegex = [];
-
-    public function __construct(string $key, $default, string $validationRegex)
+    public function __construct()
     {
-        $this->key = $key;
-        $this->default = $default;
-        $this->validationRegex = $validationRegex;
-
-        return $this;
     }
-
-    public function validate()
+    
+    public function test()
     {
+        echo 'Testing';
     }
 }
