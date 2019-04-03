@@ -1,5 +1,5 @@
 {
-  "name": "peteklein/wp-efficient-meta",
+  "name": "peteklein/wp-post-collection",
   "require": {
     "php": "^7.2"
   },
