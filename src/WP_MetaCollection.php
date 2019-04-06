@@ -5,32 +5,25 @@ namespace PeteKlein\WP\PostCollection;
 class WP_MetaCollection
 {
     public $metaDefinitions = [];
-    public $meta = [];
-
-    public function __construct(array $metaDefinitions)
-    {
-        foreach ($metaDefinitions as $metaDefinition) {
-            $this->addMetaDefinition($metaDefinition);
-        }
-    }
+    public $metaResults = [];
 
     public function addMetaDefinition(WP_MetaDefinition $metaDefinition)
     {
         $this->metaDefinitions[] = $metaDefinition;
     }
 
-    public function listMetaKeys()
+    private function listMetaKeys()
     {
         return array_column($this->metaDefinitions, 'key');
     }
 
-    public function fetchByPostIds(array $postIds)
+    public function getByPostIds(array $postIds)
     {
         global $wpdb;
 
         $postIdInClauseValues = join(',', $postIds);
         $metaKeys = $this->listMetaKeys();
-        $metaKeyInClauseValues = "'" . join(',', $metaKeys) . "'";
+        $metaKeyInClauseValues = "'" . join("','", $metaKeys) . "'";
 
         $query = "SELECT 
             * 
@@ -39,26 +32,37 @@ class WP_MetaCollection
         AND post_id IN ($postIdInClauseValues)";
 
         // TODO: error handling
-        $metaResults = $wpdb->get_results($query);
+        $results = $wpdb->get_results($query);
 
-        return $this->processMetaResults($metaResults);
+        return $formattedResults = $this->formatResults($results);
     }
 
-    private function processMetaResults(array $metaResults)
+    private function formatResults(array $results)
     {
-        // populate defaults and put into WP_PostMeta Objects
-        $meta = [];
-        foreach ($metaResults as $m) {
-            $key = $m->meta_key;
+        /** organize by post Id */
+        $formattedResults = [];
+        foreach ($results as $result) {
+            $postId = $result->post_id;
+            if (empty($formattedResults[$postId])) {
+                $formattedResults[$postId] = [];
+            }
 
-            $metaDefinition = $this->getMetaDefinitionByKey($key);
-            $value = $metaDefinition->valueOrDefault($m->meta_value);
-            $meta[] = new WP_PostMeta($m->post_id, $key, $value);
+            $formattedResults[$postId][] = $result;
         }
 
-        $this->meta = $meta;
+        /** populate defaults and put into result */
+        // TODO: account for multiple entries
+        foreach ($formattedResults as $postId => $postMeta) {
+            $postMetaResults = new WP_PostMetaResults($postId);
+            foreach ($postMeta as $m) {
+                $metaDefinition = $this->getMetaDefinitionByKey($m->meta_key);
+                $value = $metaDefinition->valueOrDefault($m->meta_value);
+                $postMetaResults->addResult($m->meta_key, $value);
+            }
+            $this->metaResults[] = $postMetaResults;
+        }
 
-        return $this->meta;
+        return $this->metaResults;
     }
 
     private function getMetaDefinitionByKey(string $key)
@@ -74,22 +78,11 @@ class WP_MetaCollection
 
     public function getMetaByPostId(int $postId)
     {
-        $metaForPost = [];
-        foreach ($this->meta as $m) {
-            if ($m->post_id === $postId) {
-                $metaForPost[] = $m;
+        foreach ($this->metaResults as $mr) {
+            if ($mr->postId === $postId) {
+                return $mr;
             }
         }
-
-        // see if all meta definitions are satisfed
-        $metaKeysForPost = array_column($metaForPost, 'meta_key');
-        foreach ($this->metaDefinitions as $md) {
-            if (!in_array($md->key, $metaKeysForPost)) {
-                $metaForPost[] = new WP_PostMeta($postId, $md->key, $md->default);
-            }
-        }
-
-        return $metaForPost;
     }
 
     public function set(int $postId, array $valuesMap)

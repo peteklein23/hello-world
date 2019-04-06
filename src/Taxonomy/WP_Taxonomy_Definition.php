@@ -1,15 +1,15 @@
 <?php
 
-namespace PeteKlein\WP\PostCollection;
+namespace PeteKlein\WP\PostCollection\Taxonomy;
 
-class WP_MetaDefinition
+class WP_Taxonomy_Definition
 {
-    public $key;
+    public $slug;
     public $default;
 
-    public function __construct(string $key, $default)
+    public function __construct(string $slug, $default)
     {
-        $this->key = $key;
+        $this->slug = $slug;
         $this->default = $default;
     }
 
