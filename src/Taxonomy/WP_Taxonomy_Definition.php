@@ -13,7 +13,7 @@ class WP_Taxonomy_Definition
         $this->default = $default;
     }
 
-    public function valueOrDefault($value)
+    public function value_or_default($value)
     {
         if (empty($value)) {
             return $this->default;

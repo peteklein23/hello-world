@@ -1,8 +1,8 @@
 <?php
 
-namespace PeteKlein\WP\PostCollection;
+namespace PeteKlein\WP\PostCollection\Meta;
 
-class WP_MetaDefinition
+class WP_Meta_Definition
 {
     public $key;
     public $default;
@@ -13,7 +13,7 @@ class WP_MetaDefinition
         $this->default = $default;
     }
 
-    public function valueOrDefault($value)
+    public function value_or_default($value)
     {
         if (empty($value)) {
             return $this->default;

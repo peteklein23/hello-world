@@ -1,8 +1,8 @@
 <?php
 
-namespace PeteKlein\WP\PostCollection;
+namespace PeteKlein\WP\PostCollection\Meta;
 
-class WP_PostMetaResult
+class WP_Post_Meta
 {
     public $key;
     public $value;

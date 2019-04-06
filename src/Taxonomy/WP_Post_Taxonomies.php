@@ -87,4 +87,15 @@ class WP_Post_Taxonomies
 
         return $this;
     }
+
+    public function get(int $post_id)
+    {
+        foreach ($this->post_terms as $pt) {
+            if ($pt->post_id === $post_id) {
+                return $pt;
+            }
+        }
+
+        return null;
+    }
 }

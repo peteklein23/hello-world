@@ -3,18 +3,19 @@
 namespace PeteKlein\WP\PostCollection;
 
 use PeteKlein\WP\PostCollection\Taxonomy\WP_Post_Taxonomies;
+use PeteKlein\WP\PostCollection\Meta\WP_Post_Meta_Fields;
 
 abstract class WP_Post_Collection
 {
     public $posts = [];
-    public $postCollectionItems = [];
-    public $metaCollection = null;
-    public $post_taxonomies = null;
+    public $items = [];
+    public $meta_fields = null;
+    public $taxonomies = null;
 
     public function __construct(array $posts)
     {
-        $this->metaCollection = new WP_MetaCollection();
-        $this->post_taxonomies = new WP_Post_Taxonomies();
+        $this->meta_fields = new WP_Post_Meta_Fields();
+        $this->taxonomies = new WP_Post_Taxonomies();
         
         foreach ($posts as $post) {
             $this->addPost($post);
@@ -28,40 +29,61 @@ abstract class WP_Post_Collection
         return $this;
     }
 
-    public function addMetaDefinition(string $key, $default = null)
+    public function add_meta_definition(string $key, $default = null)
     {
-        $this->metaCollection->addMetaDefinition(new WP_MetaDefinition($key, $default));
+        $this->meta_fields->add_definition($key, $default);
 
         return $this;
     }
 
-    public function addTaxonomyDefinition(string $taxonomy, $default)
+    public function add_taxonomy_definition(string $taxonomy, $default)
     {
-        $this->post_taxonomies->add_definition($taxonomy, $default);
+        $this->taxonomies->add_definition($taxonomy, $default);
 
         return $this;
     }
 
-    private function listPostIds()
+    private function list_post_ids()
     {
         return array_column($this->posts, 'ID');
     }
 
-    // TODO: separate these out into getMeta(), getTaxonomies() and getFeatureImages()
-    // TODO: fire all three in fetch()
-    public function list()
+    public function create_items()
     {
-        $postCollectionItems = [];
-        $postIds = $this->listPostIds();
-        // $metaList = $this->metaCollection->getByPostIds($postIds);
-        return $taxonomyList = $this->post_taxonomies->fetch($postIds);
+        $items = [];
         foreach ($this->posts as $post) {
-            $metaForPost = $this->metaCollection->getMetaByPostId($post->ID);
-            $postCollectionItems[] = new WP_PostCollectionItem($post, $metaForPost);
+            $collection_item = new WP_Post_Collection_Item($post);
+
+            $metas = $this->meta_fields->get($post->ID);
+            $collection_item->set_metas($metas);
+            
+            $terms = $this->taxonomies->get($post->ID);
+            $collection_item->set_taxonomies($terms);
+
+            $items[] = $collection_item;
         }
 
-        $this->postCollectionItems = $postCollectionItems;
+        $this->items = $items;
 
-        return $this->postCollectionItems;
+        return $this->items;
+    }
+
+    public function fetch_meta(array $post_ids)
+    {
+        return $this->meta_fields->fetch($post_ids);
+    }
+
+    public function fetch_taxonomies(array $post_ids)
+    {
+        return $this->taxonomies->fetch($post_ids);
+    }
+
+    public function fetch()
+    {
+        $post_ids = $this->list_post_ids();
+        $meta = $this->fetch_meta($post_ids);
+        $taxonomies = $this->fetch_taxonomies($post_ids);
+
+        return $this->create_items();
     }
 }
