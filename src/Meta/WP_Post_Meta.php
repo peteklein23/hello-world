@@ -2,6 +2,9 @@
 
 namespace PeteKlein\WP\PostCollection\Meta;
 
+/**
+ * Simple container for metadata
+ */
 class WP_Post_Meta
 {
     public $key;

@@ -2,19 +2,22 @@
 
 namespace PeteKlein\WP\PostCollection\Meta;
 
-class WP_Post_Meta_Fields
+/**
+ * Gets and references metadata across multiple posts
+ */
+class WP_Post_Meta_Collection
 {
-    public $definitions = [];
-    public $meta_fields = [];
+    public $definition_list = null;
+    public $meta_lists = [];
+
+    public function __construct()
+    {
+        $this->definition_list = new WP_Meta_Definition_List();
+    }
 
     public function add_definition(string $key, $default)
     {
-        $this->definitions[] = new WP_Meta_Definition($key, $default);
-    }
-
-    private function get_meta_keys()
-    {
-        return array_column($this->definitions, 'key');
+        $this->definition_list->add($key, $default);
     }
 
     /** group results by post ID */
@@ -33,20 +36,18 @@ class WP_Post_Meta_Fields
         return $grouped_results;
     }
 
-    private function create_post_metas(array $grouped_results)
+    private function create_post_meta_lists(array $grouped_results)
     {
         foreach ($grouped_results as $post_id => $post_meta) {
-            $post_metas = new WP_Post_Metas($post_id);
+            $post_meta_list = new WP_Post_Meta_List($post_id, $this->definition_list);
 
             foreach ($post_meta as $m) {
-                $definition = $this->get_definition($m->meta_key);
-                $value = $definition->value_or_default($m->meta_value);
-                $post_metas->add_result($m->meta_key, $value);
+                $post_meta_list->add_meta($m->meta_key, $m->meta_value);
             }
-            $this->meta_fields[] = $post_metas;
+            $this->meta_lists[] = $post_meta_list;
         }
 
-        return $this->meta_fields;
+        return $this->meta_lists;
     }
 
     public function fetch(array $post_ids)
@@ -54,7 +55,7 @@ class WP_Post_Meta_Fields
         global $wpdb;
 
         $post_list = join(',', $post_ids);
-        $keys = $this->get_meta_keys();
+        $keys = $this->definition_list->list_keys();
         $key_list = "'" . join("','", $keys) . "'";
 
         $query = "SELECT 
@@ -67,32 +68,17 @@ class WP_Post_Meta_Fields
         $results = $wpdb->get_results($query);
         $grouped_results = $this->group_results($results);
         
-        return $this->create_post_metas($grouped_results);
-    }
-
-    private function get_definition(string $key)
-    {
-        foreach ($this->definitions as $md) {
-            if ($md->key === $key) {
-                return $md;
-            }
-        }
-
-        return null;
+        return $this->create_post_meta_lists($grouped_results);
     }
 
     public function get(int $post_id)
     {
-        foreach ($this->meta_fields as $mr) {
+        foreach ($this->meta_lists as $mr) {
             if ($mr->post_id === $post_id) {
                 return $mr;
             }
         }
 
         return null;
-    }
-
-    public function set(int $post_id, array $valuesMap)
-    {
     }
 }

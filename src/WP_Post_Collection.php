@@ -3,26 +3,29 @@
 namespace PeteKlein\WP\PostCollection;
 
 use PeteKlein\WP\PostCollection\Taxonomy\WP_Post_Taxonomies;
-use PeteKlein\WP\PostCollection\Meta\WP_Post_Meta_Fields;
+use PeteKlein\WP\PostCollection\Meta\WP_Post_Meta_Collection;
 
+/**
+ * Makes it easier and more efficient to query meta, taxonomies and featured images at scale
+ */
 abstract class WP_Post_Collection
 {
     public $posts = [];
     public $items = [];
-    public $meta_fields = null;
+    public $meta_collection = null;
     public $taxonomies = null;
 
     public function __construct(array $posts)
     {
-        $this->meta_fields = new WP_Post_Meta_Fields();
+        $this->meta_collection = new WP_Post_Meta_Collection();
         $this->taxonomies = new WP_Post_Taxonomies();
         
         foreach ($posts as $post) {
-            $this->addPost($post);
+            $this->add_post($post);
         }
     }
 
-    public function addPost(\WP_Post $post)
+    public function add_post(\WP_Post $post)
     {
         $this->posts[] = $post;
 
@@ -31,7 +34,7 @@ abstract class WP_Post_Collection
 
     public function add_meta_definition(string $key, $default = null)
     {
-        $this->meta_fields->add_definition($key, $default);
+        $this->meta_collection->add_definition($key, $default);
 
         return $this;
     }
@@ -54,8 +57,8 @@ abstract class WP_Post_Collection
         foreach ($this->posts as $post) {
             $collection_item = new WP_Post_Collection_Item($post);
 
-            $metas = $this->meta_fields->get($post->ID);
-            $collection_item->set_metas($metas);
+            $metas = $this->meta_collection->get($post->ID);
+            $collection_item->set_meta_list($metas);
             
             $terms = $this->taxonomies->get($post->ID);
             $collection_item->set_taxonomies($terms);
@@ -70,7 +73,7 @@ abstract class WP_Post_Collection
 
     public function fetch_meta(array $post_ids)
     {
-        return $this->meta_fields->fetch($post_ids);
+        return $this->meta_collection->fetch($post_ids);
     }
 
     public function fetch_taxonomies(array $post_ids)
