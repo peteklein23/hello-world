@@ -19,7 +19,7 @@ class WP_Post_Meta_Fields
     {
         foreach ($this->fields as $field) {
             if ($field->key === $key) {
-                return $key;
+                return $field;
             }
         }
 
@@ -37,12 +37,7 @@ class WP_Post_Meta_Fields
 
     private function list_keys()
     {
-        $keys = [];
-        foreach ($this->fields as $field) {
-            $keys[] = $field->key;
-        }
-
-        return $keys;
+        return array_column($this->fields, 'key');
     }
 
     public function get(int $post_id, string $key)
@@ -127,7 +122,8 @@ class WP_Post_Meta_Fields
         }
 
         $formatted_results = $this->format_results($results);
+        $this->values = $formatted_results;
         
-        return $formatted_results;
+        return $this->values;
     }
 }
