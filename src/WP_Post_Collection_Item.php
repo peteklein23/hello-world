@@ -24,11 +24,11 @@ class WP_Post_Collection_Item
 
     public function set_taxonomies(WP_Post_Terms $taxonomies)
     {
-        $this->taxonomies = $taxonomies;
+        return $this->taxonomies = $taxonomies;
     }
 
     public function get_meta(string $key)
     {
-        return $this->meta_list->get($key)->value;
+        return $this->meta_list->get($key);
     }
 }
