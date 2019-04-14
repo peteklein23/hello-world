@@ -4,6 +4,7 @@ namespace PeteKlein\WP\PostCollection;
 
 use PeteKlein\WP\PostCollection\Taxonomy\WP_Post_Taxonomy_Fields;
 use PeteKlein\WP\PostCollection\Meta\WP_Post_Meta_Fields;
+use PeteKlein\WP\PostCollection\FeaturedImage\WP_Featured_Images;
 
 /**
  * Makes it easier and more efficient to query meta, taxonomy_fields and featured images at scale
@@ -11,14 +12,16 @@ use PeteKlein\WP\PostCollection\Meta\WP_Post_Meta_Fields;
 abstract class WP_Post_Collection
 {
     public $posts = [];
-    public $items = [];
     public $meta_fields = null;
     public $taxonomy_fields = null;
+    public $featured_images = null;
+    public $featured_image_size = null;
 
     public function __construct(array $posts)
     {
         $this->meta_fields = new WP_Post_Meta_Fields();
         $this->taxonomy_fields = new WP_Post_Taxonomy_Fields();
+        $this->featured_images = new WP_Featured_Images();
         
         foreach ($posts as $post) {
             $this->add_post($post);
@@ -51,47 +54,46 @@ abstract class WP_Post_Collection
         return array_column($this->posts, 'ID');
     }
 
-    public function create_items()
+    private function augment_posts()
     {
-        $items = [];
-        foreach ($this->posts as $post) {
-            $collection_item = new WP_Post_Collection_Item($post);
-
-            $metas = $this->meta_fields->get($post->ID);
-            $collection_item->set_meta_list($metas);
-            
-            $terms = $this->taxonomy_fields->get($post->ID);
-            $collection_item->set_taxonomy_fields($terms);
-
-            $items[] = $collection_item;
+        foreach ($this->posts as &$post) {
+            $post->meta = $this->meta_fields->list($post->ID);
+            $post->taxonomies = $this->taxonomy_fields->list($post->ID);
+            $post->featured_image = $this->featured_images->get($post->ID);
         }
-
-        $this->items = $items;
-
-        return $this->items;
     }
 
-    public function fetch_meta(array $post_ids)
+    public function fetch_meta()
     {
-        return $this->meta_fields->fetch($post_ids);
+        return $this->meta_fields->fetch($this->list_post_ids());
     }
 
-    public function fetch_taxonomies(array $post_ids)
+    public function fetch_taxonomies()
     {
-        return $this->taxonomy_fields->fetch($post_ids);
+        return $this->taxonomy_fields->fetch($this->list_post_ids());
     }
 
-    public function fetch_featured_images(array $post_ids)
+    public function fetch_featured_images()
     {
-        return $this->taxonomy_fields->fetch($post_ids);
+        if (empty($this->featured_image_size)) {
+            return [];
+        }
+        
+        return $this->featured_images->fetch($this->list_post_ids(), $this->featured_image_size);
     }
 
     public function fetch()
     {
-        $post_ids = $this->list_post_ids();
-        $meta = $this->fetch_meta($post_ids);
-        return $taxonomy_fields = $this->fetch_taxonomies($post_ids);
+        $meta = $this->fetch_meta();
+        $taxonomy_fields = $this->fetch_taxonomies();
+        $featured_images = $this->fetch_featured_images();
+        $this->augment_posts();
 
-        return $this->create_items();
+        return $this->get_posts();
+    }
+
+    public function get_posts()
+    {
+        return $this->posts;
     }
 }

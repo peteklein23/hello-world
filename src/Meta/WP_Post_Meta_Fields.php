@@ -28,11 +28,11 @@ class WP_Post_Meta_Fields
 
     public function list(int $post_id)
     {
-        if (!empty($this->values['post_id'])) {
-            return $this->values['post_id'];
+        if (!empty($this->values[$post_id])) {
+            return $this->values[$post_id];
         }
 
-        return null;
+        return [];
     }
 
     private function list_keys()
@@ -43,8 +43,8 @@ class WP_Post_Meta_Fields
     public function get(int $post_id, string $key)
     {
         $post = null;
-        if (!empty($this->values['post_id'])) {
-            $post = $this->values['post_id'];
+        if (!empty($this->values[$post_id])) {
+            $post = $this->values[$post_id];
         }
 
         if (!empty($post[$key])) {
@@ -82,7 +82,7 @@ class WP_Post_Meta_Fields
             }
 
             if ($field->single) {
-                $formatted_results[$post_id][$key] = $value;
+                $formatted_results[$post_id][$key] = maybe_unserialize($value);
                 continue;
             }
 
@@ -95,9 +95,18 @@ class WP_Post_Meta_Fields
         return $this->populate_missing_values($formatted_results);
     }
 
+    private function has_fields()
+    {
+        return !empty($this->fields);
+    }
+
     public function fetch(array $post_ids)
     {
         global $wpdb;
+
+        if (!$this->has_fields()) {
+            return $this->values = [];
+        }
 
         $post_list = join(',', $post_ids);
         $keys = $this->list_keys();
@@ -121,9 +130,6 @@ class WP_Post_Meta_Fields
             );
         }
 
-        $formatted_results = $this->format_results($results);
-        $this->values = $formatted_results;
-        
-        return $this->values;
+        return $this->values = $this->format_results($results);
     }
 }

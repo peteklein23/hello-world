@@ -19,20 +19,20 @@ class WP_Post_Taxonomy_Fields
         return array_column($this->fields, 'taxonomy');
     }
 
-    public function list(int $post_id, string $taxonomy)
+    public function list(int $post_id)
     {
-        if (!empty($this->terms['post_id'])) {
-            return $this->terms['post_id'];
+        if (!empty($this->terms[$post_id])) {
+            return $this->terms[$post_id];
         }
 
-        return null;
+        return [];
     }
 
     public function get(int $post_id, string $taxonomy)
     {
         $post = null;
-        if (!empty($this->terms['post_id'])) {
-            $post = $this->terms['post_id'];
+        if (!empty($this->terms[$post_id])) {
+            $post = $this->terms[$post_id];
         }
 
         if (!empty($post[$taxonomy])) {
@@ -76,10 +76,19 @@ class WP_Post_Taxonomy_Fields
         return $this->populate_missing_values($formatted_results);
     }
 
+    private function has_fields()
+    {
+        return !empty($this->fields);
+    }
+
     /** run query to get terms */
     public function fetch(array $post_ids)
     {
         global $wpdb;
+
+        if (!$this->has_fields()) {
+            return $this->terms = [];
+        }
 
         $taxonomies = $this->get_taxonomies();
         $taxonomy_list = "'" . join("', '", $taxonomies) . "'";
@@ -103,9 +112,7 @@ class WP_Post_Taxonomy_Fields
             AND tr.object_id IN ($post_list)";
 
         $results = $wpdb->get_results($query);
-        $formatted_results = $this->format_results($results);
-        $this->terms = $formatted_results;
 
-        return $this->terms;
+        return $this->terms = $this->format_results($results);
     }
 }
