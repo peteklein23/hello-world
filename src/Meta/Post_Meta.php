@@ -2,17 +2,22 @@
 
 namespace PeteKlein\WP\PostCollection\Meta;
 
-/**
- * Gets and references metadata across multiple posts
- */
-class WP_Post_Meta_Fields
+class Post_Meta
 {
+    private $post_id;
     private $fields = [];
     private $values = [];
 
+    public function __construct(int $post_id)
+    {
+        $this->post_id = $post_id;
+    }
+
     public function add_field(string $key, $default, bool $single = true)
     {
-        $this->fields[] = new WP_Post_Meta_Field($key, $default, $single);
+        $this->fields[] = new Post_Meta_Field($key, $default, $single);
+
+        return $this;
     }
 
     public function get_field(string $key)
@@ -26,13 +31,9 @@ class WP_Post_Meta_Fields
         return null;
     }
 
-    public function list(int $post_id)
+    private function has_fields()
     {
-        if (!empty($this->values[$post_id])) {
-            return $this->values[$post_id];
-        }
-
-        return [];
+        return !empty($this->fields);
     }
 
     private function list_keys()
@@ -40,27 +41,11 @@ class WP_Post_Meta_Fields
         return array_column($this->fields, 'key');
     }
 
-    public function get(int $post_id, string $key)
-    {
-        $post = null;
-        if (!empty($this->values[$post_id])) {
-            $post = $this->values[$post_id];
-        }
-
-        if (!empty($post[$key])) {
-            return $post[$key];
-        }
-
-        return null;
-    }
-
     private function populate_missing_values($formatted_results)
     {
-        foreach ($formatted_results as $post_id => &$meta) {
-            foreach ($this->fields as $field) {
-                if (empty($meta[$field->key])) {
-                    $meta[$field->key] = $field->default;
-                }
+        foreach ($this->fields as $field) {
+            if (empty($formatted_results[$field->key])) {
+                $formatted_results[$field->key] = $field->default;
             }
         }
 
@@ -72,35 +57,39 @@ class WP_Post_Meta_Fields
         $formatted_results = [];
 
         foreach ($results as $result) {
-            $post_id = $result->post_id;
             $key = $result->meta_key;
             $value = $result->meta_value;
             $field = $this->get_field($key);
 
-            if (empty($formatted_results[$post_id])) {
-                $formatted_results[$post_id] = [];
-            }
-
             if ($field->single) {
-                $formatted_results[$post_id][$key] = maybe_unserialize($value);
+                $formatted_results[$key] = maybe_unserialize($value);
                 continue;
             }
 
-            if (empty($formatted_results[$post_id][$key])) {
-                $formatted_results[$post_id][$key] = [];
+            if (empty($formatted_results[$key])) {
+                $formatted_results[$key] = [];
             }
-            $formatted_results[$post_id][$key][] = $value;
+            $formatted_results[$key][] = $value;
         }
 
         return $this->populate_missing_values($formatted_results);
     }
 
-    private function has_fields()
+    public function get(string $key)
     {
-        return !empty($this->fields);
+        if (!empty($this->values[$key])) {
+            return $this->values[$key];
+        }
+
+        return null;
     }
 
-    public function fetch(array $post_ids)
+    public function list()
+    {
+        return $this->values;
+    }
+
+    public function fetch()
     {
         global $wpdb;
 
@@ -108,7 +97,6 @@ class WP_Post_Meta_Fields
             return $this->values = [];
         }
 
-        $post_list = join(',', $post_ids);
         $keys = $this->list_keys();
         $key_list = "'" . join("','", $keys) . "'";
 
@@ -116,7 +104,7 @@ class WP_Post_Meta_Fields
             * 
         FROM $wpdb->postmeta
         WHERE meta_key IN ($key_list)
-        AND post_id IN ($post_list)";
+        AND post_id = $this->post_id";
 
         $results = $wpdb->get_results($query);
         if ($results === false) {

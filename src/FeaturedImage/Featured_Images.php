@@ -2,7 +2,7 @@
 
 namespace PeteKlein\WP\PostCollection\FeaturedImage;
 
-class WP_Featured_Images
+class Featured_Images
 {
     private $images = [];
 

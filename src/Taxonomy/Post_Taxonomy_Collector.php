@@ -2,14 +2,14 @@
 
 namespace PeteKlein\WP\PostCollection\Taxonomy;
 
-class WP_Post_Taxonomy_Fields
+class Post_Taxonomy_Collector
 {
     public $fields = [];
     public $terms = [];
 
     public function add_field(string $taxonomy, $default)
     {
-        $this->fields[] = new WP_Post_Taxonomy_Field($taxonomy, $default);
+        $this->fields[] = new Post_Taxonomy_Field($taxonomy, $default);
 
         return $this;
     }

@@ -2,7 +2,7 @@
 
 namespace PeteKlein\WP\PostCollection\Taxonomy;
 
-class WP_Post_Taxonomy_Field
+class Post_Taxonomy_Field
 {
     public $taxonomy;
     public $default;
