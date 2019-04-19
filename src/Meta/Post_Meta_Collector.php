@@ -8,7 +8,7 @@ namespace PeteKlein\WP\PostCollection\Meta;
 class Post_Meta_Collector
 {
     private $fields = [];
-    private $values = [];
+    private $meta_list = [];
 
     public function add_field(string $key, $default, bool $single = true)
     {
@@ -28,13 +28,25 @@ class Post_Meta_Collector
         return null;
     }
 
-    public function list(int $post_id)
+    public function list()
     {
-        if (!empty($this->values[$post_id])) {
-            return $this->values[$post_id];
+        $formatted_list = [];
+        foreach ($this->meta_list as $meta) {
+            $formatted_list[$meta->post_id] = $meta->list();
         }
 
-        return [];
+        return $formatted_list;
+    }
+
+    public function get(int $post_id)
+    {
+        foreach ($this->meta_list as $meta) {
+            if ($meta->post_id === $post_id) {
+                return $meta;
+            }
+        }
+
+        return null;
     }
 
     private function list_keys()
@@ -42,11 +54,11 @@ class Post_Meta_Collector
         return array_column($this->fields, 'key');
     }
 
-    public function get(int $post_id, string $key)
+    public function get_value(int $post_id, string $key)
     {
         $post = null;
-        if (!empty($this->values[$post_id])) {
-            $post = $this->values[$post_id];
+        if (!empty($this->meta_list[$post_id])) {
+            $post = $this->meta_list[$post_id];
         }
 
         if (!empty($post[$key])) {
@@ -61,53 +73,45 @@ class Post_Meta_Collector
         return !empty($this->fields);
     }
 
-    private function populate_missing_values($formatted_results)
-    {
-        foreach ($formatted_results as $post_id => &$meta) {
-            foreach ($this->fields as $field) {
-                if (empty($meta[$field->key])) {
-                    $meta[$field->key] = $field->default;
-                }
-            }
-        }
-
-        return $formatted_results;
-    }
-
-    private function format_results(array $results)
+    private function populate_meta_from_results(array $results)
     {
         $formatted_results = [];
 
+        // sort posts by IDs
         foreach ($results as $result) {
             $post_id = $result->post_id;
-            $key = $result->meta_key;
-            $value = $result->meta_value;
-            $field = $this->get_field($key);
 
             if (empty($formatted_results[$post_id])) {
                 $formatted_results[$post_id] = [];
             }
 
-            if ($field->single) {
-                $formatted_results[$post_id][$key] = maybe_unserialize($value);
-                continue;
-            }
-
-            if (empty($formatted_results[$post_id][$key])) {
-                $formatted_results[$post_id][$key] = [];
-            }
-            $formatted_results[$post_id][$key][] = $value;
+            $formatted_results[$post_id][] = $result;
         }
 
-        return $this->populate_missing_values($formatted_results);
+        // create Post_Meta objects and set fields and values
+        foreach ($formatted_results as $post_id => $results) {
+            $post_meta = new Post_Meta($post_id);
+            $set_fields = $post_meta->set_fields($this->fields);
+            if (is_wp_error($set_fields)) {
+                return $set_fields;
+            }
+            $post_meta->populate_from_results($results);
+            
+            $this->meta_list[] = $post_meta;
+        }
+
+        return true;
     }
 
     public function fetch(array $post_ids)
     {
         global $wpdb;
+        
+        // empty meta list
+        $this->meta_list = [];
 
         if (!$this->has_fields()) {
-            return $this->values = [];
+            return true;
         }
 
         $post_list = join(',', $post_ids);
@@ -132,6 +136,11 @@ class Post_Meta_Collector
             );
         }
 
-        return $this->values = $this->format_results($results);
+        $populate_meta = $this->populate_meta_from_results($results);
+        if (is_wp_error($populate_meta)) {
+            return $populate_meta;
+        }
+
+        return true;
     }
 }

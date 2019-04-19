@@ -4,7 +4,7 @@ namespace PeteKlein\WP\PostCollection\Meta;
 
 class Post_Meta
 {
-    private $post_id;
+    public $post_id;
     private $fields = [];
     private $values = [];
 
@@ -41,38 +41,71 @@ class Post_Meta
         return array_column($this->fields, 'key');
     }
 
-    private function populate_missing_values($formatted_results)
+    private function populate_missing_values()
     {
         foreach ($this->fields as $field) {
-            if (empty($formatted_results[$field->key])) {
-                $formatted_results[$field->key] = $field->default;
+            if (empty($this->values[$field->key])) {
+                $this->values[$field->key] = $field->default;
             }
         }
-
-        return $formatted_results;
     }
 
-    private function format_results(array $results)
+    public function set_value(string $key, string $value)
     {
-        $formatted_results = [];
+        $field = $this->get_field($key);
+        $unserializedValue = maybe_unserialize($value);
 
+        if (empty($field)) {
+            return $this;
+        }
+        
+        if (empty($unserializedValue)) {
+            $unserializedValue = $field->default;
+        }
+
+        if ($field->single) {
+            $this->values[$key] = $unserializedValue;
+
+            return $this;
+        }
+
+        if (empty($this->values[$key])) {
+            $this->values[$key] = [];
+        }
+
+        $this->values[$key][] = $unserializedValue;
+
+        return $this;
+    }
+
+    public function set_fields(array $fields)
+    {
+        foreach ($fields as $field) {
+            if (!($field instanceof Post_Meta_Field)) {
+                return new \WP_Error(
+                    'post_meta_field_needed',
+                    __('Sorry, all values passed must be an instance of Post_Meta_Field', 'peteklein'),
+                    [
+                        'field' => $field
+                    ]
+                );
+            }
+            $this->fields[] = $field;
+        }
+
+        return $this;
+    }
+
+    public function populate_from_results(array $results)
+    {
         foreach ($results as $result) {
             $key = $result->meta_key;
             $value = $result->meta_value;
-            $field = $this->get_field($key);
-
-            if ($field->single) {
-                $formatted_results[$key] = maybe_unserialize($value);
-                continue;
-            }
-
-            if (empty($formatted_results[$key])) {
-                $formatted_results[$key] = [];
-            }
-            $formatted_results[$key][] = $value;
+            
+            $this->set_value($key, $value);
         }
 
-        return $this->populate_missing_values($formatted_results);
+        $this->populate_missing_values();
     }
 
     public function get(string $key)
@@ -93,8 +126,11 @@ class Post_Meta
     {
         global $wpdb;
 
+        // empty values
+        $this->values = [];
+
         if (!$this->has_fields()) {
-            return $this->values = [];
+            return true;
         }
 
         $keys = $this->list_keys();
@@ -118,6 +154,8 @@ class Post_Meta
             );
         }
 
-        return $this->values = $this->format_results($results);
+        $this->populate_from_results($results);
+
+        return true;
     }
 }
