@@ -54,11 +54,11 @@ abstract class Post_Data_Collector
         return array_column($this->posts, 'ID');
     }
 
-    private function add_data_to_post()
+    private function add_data_to_posts()
     {
         foreach ($this->posts as &$post) {
             $post->meta = $this->meta->get($post->ID);
-            $post->taxonomies = $this->taxonomies->list($post->ID);
+            $post->taxonomies = $this->taxonomies->get($post->ID);
             $post->featured_image = $this->featured_images->get($post->ID);
         }
     }
@@ -86,9 +86,9 @@ abstract class Post_Data_Collector
     {
         $post_ids = $this->list_post_ids();
         $meta = $this->fetch_meta($post_ids);
-        // $taxonomies = $this->fetch_taxonomies($post_ids);
-        // $featured_images = $this->fetch_featured_images();
-        $this->add_data_to_post();
+        $taxonomies = $this->fetch_taxonomies($post_ids);
+        $featured_images = $this->fetch_featured_images($post_ids);
+        $this->add_data_to_posts();
 
         return $this->get_posts();
     }

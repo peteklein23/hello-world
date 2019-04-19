@@ -148,8 +148,8 @@ class Post_Meta
                 'fetch_post_meta_failed',
                 __('Sorry, fetching the post meta failed.', 'peteklein'),
                 [
-                    'post_ids' => $post_ids,
-                    'keys' => $keys
+                    'post_id' => $this->post_id,
+                    'fields' => $this->fields
                 ]
             );
         }
