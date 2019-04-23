@@ -4,68 +4,116 @@ namespace PeteKlein\WP\PostCollection\FeaturedImage;
 
 class Featured_Images
 {
+    public $post_id;
+    private $sizes = [];
     private $images = [];
 
-    private function format_results(array $results, string $size)
+    public function __construct(int $post_id)
     {
-        $formatted_results = [];
-        foreach ($results as $result) {
-            $post_id = $result->post_id;
-            $attachment_id = $result->attachment_id;
-            $meta = maybe_unserialize($result->attachment_metadata);
-            $sizes = $meta['sizes'];
-            $file = $meta['file'];
-            $base_url = wp_upload_dir()['baseurl'];
+        $this->post_id = $post_id;
+    }
+
+    public function add_size(string $size)
+    {
+        $this->sizes[] = $size;
+
+        return $this;
+    }
+
+    public function set_sizes(array $sizes)
+    {
+        foreach ($sizes as $size) {
+            $this->add_size($size);
+        }
+    }
+
+    public function get(string $size)
+    {
+        if (!empty($this->images[$size])) {
+            return $this->images[$size];
+        }
+
+        return null;
+    }
+
+    public function list()
+    {
+        return $this->images;
+    }
+
+    public function populate_result(object $result = null)
+    {
+        if (empty($result)) {
+            return;
+        }
+        $formatted_result = [];
+        
+        $attachment_id = $result->attachment_id;
+        $meta = maybe_unserialize($result->attachment_metadata);
+        $sizes = $meta['sizes'];
+        $file = $meta['file'];
+        $base_url = wp_upload_dir()['baseurl'];
+
+        foreach ($this->sizes as $size) {
+            $height = 0;
+            $width = 0;
+
             if (empty($sizes[$size])) {
                 $image_url = trailingslashit($base_url) . $file;
             } else {
+                $height = $sizes[$size]['height'];
+                $width = $sizes[$size]['width'];
                 $relative_path = dirname($file);
                 $image_url = trailingslashit($base_url) . trailingslashit($relative_path) . $sizes[$size]['file'];
             }
 
-            $formatted_results[$post_id] = apply_filters('wp_get_attachment_image_src', $image_url, $attachment_id, $size, false);
+            $url = apply_filters('wp_get_attachment_image_src', $image_url, $attachment_id, $size, false);
+            ;
+            
+            $this->images[$size] = new Featured_Image(
+                $url,
+                $result->title,
+                $result->caption,
+                $result->alt,
+                $result->description,
+                $height,
+                $width
+            );
         }
-
-        return $formatted_results;
     }
 
-    public function fetch(array $post_ids, string $size = 'thumbnail')
+    public function fetch()
     {
         global $wpdb;
 
-        $post_list = join(',', $post_ids);
-
         $query = "SELECT
-            pm1.post_id,
             pm1.meta_value AS attachment_id,
-            pm2.meta_value AS attachment_metadata
-        FROM wp_postmeta pm1
-        LEFT JOIN wp_postmeta pm2 ON pm1.meta_value = pm2.post_id AND pm2.meta_key = '_wp_attachment_metadata'
-        WHERE pm1.post_id IN ($post_list)
+            pm2.meta_value AS attachment_metadata,
+            pm3.meta_value AS alt,
+            p.post_title AS title,
+            p.post_content AS description,
+            p.post_excerpt AS caption
+        FROM $wpdb->postmeta pm1
+        INNER JOIN $wpdb->postmeta pm2 ON pm1.meta_value = pm2.post_id AND pm2.meta_key = '_wp_attachment_metadata'
+        INNER JOIN $wpdb->postmeta pm3 ON pm1.meta_value = pm3.post_id AND pm3.meta_key = '_wp_attachment_image_alt'
+        INNER JOIN $wpdb->posts p ON pm1.meta_value = p.ID
+        WHERE pm1.post_id IN ($this->post_id)
         AND pm1.meta_key = '_thumbnail_id'";
 
-        $results = $wpdb->get_results($query);
-        if ($results === false) {
+        $result = $wpdb->get_row($query);
+        if ($result === false) {
             return new \WP_Error(
                 'fetch_featured_images_failed',
                 __('Sorry, fetching featured images failed.', 'peteklein'),
                 [
-                    'post_ids' => $post_ids
+                    'post_id' => $this->post_id,
+                    'sizes' => $this->sizes
                 ]
             );
         }
 
-        $this->images = $this->format_results($results, $size);
+        $this->populate_result($result);
         
-        return $this->images;
-    }
-
-    public function get(int $post_id)
-    {
-        if (!empty($this->images[$post_id])) {
-            return $this->images[$post_id];
-        }
-
-        return null;
+        return $this->list();
     }
 }
