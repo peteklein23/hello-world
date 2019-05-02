@@ -143,4 +143,31 @@ class PostMetaCollection
 
         return true;
     }
+
+    private function flattenColumns(array $columns, bool $unique)
+    {
+        $columnValues = [];
+        foreach ($columns as $column) {
+            $columnValues = array_merge($columnValues, $column);
+        }
+        if (!$unique) {
+            return $columnValues;
+        }
+
+        return array_unique($columnValues);
+    }
+
+    public function listColumn(string $key, bool $flatten = false, $unique = false)
+    {
+        $columns = [];
+        foreach ($this->metaList as $meta) {
+            $columns[] = $meta->get($key);
+        }
+
+        if (!$flatten) {
+            return $columns;
+        }
+
+        return $this->flattenColumns($columns, $unique);
+    }
 }

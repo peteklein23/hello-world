@@ -18,7 +18,6 @@ abstract class PostDetail
         $this->featuredImages = new FeaturedImages($post->ID);
         $this->meta = new PostMeta($post->ID);
         $this->taxonomies = new PostTaxonomies($post->ID);
-        
         $this->post = $post;
     }
 
