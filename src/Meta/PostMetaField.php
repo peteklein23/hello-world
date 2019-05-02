@@ -2,7 +2,7 @@
 
 namespace PeteKlein\WP\PostCollection\Meta;
 
-class Post_Meta_Field
+class PostMetaField
 {
     public $key;
     public $default;

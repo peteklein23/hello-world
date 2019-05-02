@@ -2,22 +2,22 @@
 
 namespace PeteKlein\WP\PostCollection\FeaturedImage;
 
-class Featured_Image
+class FeaturedImage
 {
     public $url;
     public $title;
     public $caption;
     public $alt;
     public $description;
-    public $height = 0;
-    public $width = 0;
+    public $height;
+    public $width;
 
     public function __construct(
-        $url,
-        $title,
-        $caption,
-        $alt,
-        $description,
+        string $url = '',
+        string $title = '',
+        string $caption = '',
+        string $alt = '',
+        string $description = '',
         $height = 0,
         $width = 0
     ) {

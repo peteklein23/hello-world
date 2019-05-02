@@ -2,57 +2,57 @@
 
 namespace PeteKlein\WP\PostCollection\FeaturedImage;
 
-class Featured_Image_Collector
+class FeaturedImageCollection
 {
     private $images = [];
     private $sizes = [];
 
-    public function add_size(string $size)
+    public function addSize(string $size)
     {
         $this->sizes[] = $size;
     }
 
-    public function get(int $post_id)
+    public function get(int $postId)
     {
         foreach ($this->images as $images) {
-            if ($images->post_id = $post_id) {
+            if ($images->postId = $postId) {
                 return $images;
             }
         }
 
-        return null;
+        return new FeaturedImages($postId);
     }
 
     public function list()
     {
         $list = [];
         foreach ($this->images as $images) {
-            $list[$images->post_id] = $images->list();
+            $list[$images->postId] = $images->list();
         }
 
         return $list;
     }
 
-    private function populate_images(array $results)
+    private function populateImages(array $results)
     {
         $formatted_results = [];
         foreach ($results as $result) {
-            $post_id = $result->post_id;
+            $postId = $result->post_id;
             
-            $featured_images = new Featured_Images($post_id);
-            $featured_images->set_sizes($this->sizes);
-            $featured_images->populate_result($result);
-            $this->images[] = $featured_images;
+            $featuredImages = new FeaturedImages($postId);
+            $featuredImages->setSizes($this->sizes);
+            $featuredImages->populateResult($result);
+            $this->images[] = $featuredImages;
         }
     }
 
-    public function fetch(array $post_ids, string $size = 'thumbnail')
+    public function fetch(array $postIds, string $size = 'thumbnail')
     {
         global $wpdb;
 
         $this->images = [];
 
-        $post_list = join(',', $post_ids);
+        $postList = join(',', $postIds);
 
         $query = "SELECT
             pm1.post_id,
@@ -66,7 +66,7 @@ class Featured_Image_Collector
         INNER JOIN $wpdb->postmeta pm2 ON pm1.meta_value = pm2.post_id AND pm2.meta_key = '_wp_attachment_metadata'
         INNER JOIN $wpdb->postmeta pm3 ON pm1.meta_value = pm3.post_id AND pm3.meta_key = '_wp_attachment_image_alt'
         INNER JOIN $wpdb->posts p ON pm1.meta_value = p.ID
-        WHERE pm1.post_id IN ($post_list)
+        WHERE pm1.post_id IN ($postList)
         AND pm1.meta_key = '_thumbnail_id'";
 
         $results = $wpdb->get_results($query);
@@ -75,12 +75,12 @@ class Featured_Image_Collector
                 'fetch_featured_images_failed',
                 __('Sorry, fetching featured images failed.', 'peteklein'),
                 [
-                    'post_ids' => $post_ids
+                    'post_ids' => $postIds
                 ]
             );
         }
 
-        $this->populate_images($results);
+        $this->populateImages($results);
         
         return $this->list();
     }

@@ -2,28 +2,28 @@
 
 namespace PeteKlein\WP\PostCollection\FeaturedImage;
 
-class Featured_Images
+class FeaturedImages
 {
-    public $post_id;
+    public $postId;
     private $sizes = [];
     private $images = [];
 
-    public function __construct(int $post_id)
+    public function __construct(int $postId)
     {
-        $this->post_id = $post_id;
+        $this->postId = $postId;
     }
 
-    public function add_size(string $size)
+    public function addSize(string $size)
     {
         $this->sizes[] = $size;
 
         return $this;
     }
 
-    public function set_sizes(array $sizes)
+    public function setSizes(array $sizes)
     {
         foreach ($sizes as $size) {
-            $this->add_size($size);
+            $this->addSize($size);
         }
     }
 
@@ -33,7 +33,7 @@ class Featured_Images
             return $this->images[$size];
         }
 
-        return null;
+        return new FeaturedImage();
     }
 
     public function list()
@@ -41,7 +41,7 @@ class Featured_Images
         return $this->images;
     }
 
-    public function populate_result(object $result = null)
+    public function populateResult(object $result = null)
     {
         if (empty($result)) {
             return;
@@ -70,7 +70,7 @@ class Featured_Images
             $url = apply_filters('wp_get_attachment_image_src', $image_url, $attachment_id, $size, false);
             ;
             
-            $this->images[$size] = new Featured_Image(
+            $this->images[$size] = new FeaturedImage(
                 $url,
                 $result->title,
                 $result->caption,
@@ -97,7 +97,7 @@ class Featured_Images
         INNER JOIN $wpdb->postmeta pm2 ON pm1.meta_value = pm2.post_id AND pm2.meta_key = '_wp_attachment_metadata'
         INNER JOIN $wpdb->postmeta pm3 ON pm1.meta_value = pm3.post_id AND pm3.meta_key = '_wp_attachment_image_alt'
         INNER JOIN $wpdb->posts p ON pm1.meta_value = p.ID
-        WHERE pm1.post_id IN ($this->post_id)
+        WHERE pm1.post_id IN ($this->postId)
         AND pm1.meta_key = '_thumbnail_id'";
 
         $result = $wpdb->get_row($query);
@@ -106,13 +106,13 @@ class Featured_Images
                 'fetch_featured_images_failed',
                 __('Sorry, fetching featured images failed.', 'peteklein'),
                 [
-                    'post_id' => $this->post_id,
+                    'post_id' => $this->postId,
                     'sizes' => $this->sizes
                 ]
             );
         }
 
-        $this->populate_result($result);
+        $this->populateResult($result);
         
         return $this->list();
     }

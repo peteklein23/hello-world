@@ -2,25 +2,25 @@
 
 namespace PeteKlein\WP\PostCollection\Taxonomy;
 
-class Post_Taxonomies
+class PostTaxonomies
 {
-    public $post_id;
+    public $postId;
     public $fields = [];
-    public $taxonomy_list = [];
+    public $taxonomyList = [];
 
-    public function __construct(int $post_id)
+    public function __construct(int $postId)
     {
-        $this->post_id = $post_id;
+        $this->postId = $postId;
     }
 
-    public function add_field(string $taxonomy, $default)
+    public function addField(string $taxonomy, $default)
     {
-        $this->fields[] = new Post_Taxonomy_Field($taxonomy, $default);
+        $this->fields[] = new PostTaxonomyField($taxonomy, $default);
 
         return $this;
     }
 
-    public function get_field(string $taxonomy)
+    public function getField(string $taxonomy)
     {
         foreach ($this->taxonomy as $taxonomy) {
             if ($field->taxonomy === $taxonomy) {
@@ -31,43 +31,43 @@ class Post_Taxonomies
         return null;
     }
 
-    private function has_fields()
+    private function hasFields()
     {
         return !empty($this->fields);
     }
 
-    private function list_taxonomies()
+    private function listTaxonomies()
     {
         return array_column($this->fields, 'taxonomy');
     }
 
-    private function populate_missing_values()
+    private function populateMissingValues()
     {
         foreach ($this->fields as $field) {
-            if (empty($this->taxonomy_list[$field->taxonomy])) {
-                $this->taxonomy_list[$field->taxonomy] = $field->default;
+            if (empty($this->taxonomyList[$field->taxonomy])) {
+                $this->taxonomyList[$field->taxonomy] = $field->default;
             }
         }
 
         return true;
     }
 
-    public function set_taxonomy(string $taxonomy, \WP_Term $term)
+    public function setTaxonomy(string $taxonomy, \WP_Term $term)
     {
-        if (empty($this->taxonomy_list[$taxonomy])) {
-            $this->taxonomy_list[$taxonomy] = [];
+        if (empty($this->taxonomyList[$taxonomy])) {
+            $this->taxonomyList[$taxonomy] = [];
         }
 
-        $this->taxonomy_list[$taxonomy][] = $term;
+        $this->taxonomyList[$taxonomy][] = $term;
     }
 
-    public function set_fields(array $fields)
+    public function setFields(array $fields)
     {
         foreach ($fields as $field) {
-            if (!($field instanceof Post_Taxonomy_Field)) {
+            if (!($field instanceof PostTaxonomyField)) {
                 return new \WP_Error(
                     'post_taxonomy_field_needed',
-                    __('Sorry, all values passed must be an instance of Post_Taxonomy_Field', 'peteklein'),
+                    __('Sorry, all values passed must be an instance of PostTaxonomyField', 'peteklein'),
                     [
                         'field' => $field
                     ]
@@ -79,22 +79,22 @@ class Post_Taxonomies
         return $this;
     }
 
-    public function populate_from_results(array $results)
+    public function populateFromResults(array $results)
     {
         foreach ($results as $result) {
             $taxonomy = $result->taxonomy;
             $term = new \WP_Term($result);
 
-            $this->set_taxonomy($taxonomy, $term);
+            $this->setTaxonomy($taxonomy, $term);
         }
 
-        $this->populate_missing_values();
+        $this->populateMissingValues();
     }
 
     public function get(string $taxonomy)
     {
-        if (!empty($this->taxonomy_list[$taxonomy])) {
-            return $this->taxonomy_list[$taxonomy];
+        if (!empty($this->taxonomyList[$taxonomy])) {
+            return $this->taxonomyList[$taxonomy];
         }
 
         return null;
@@ -102,21 +102,21 @@ class Post_Taxonomies
 
     public function list()
     {
-        return $this->taxonomy_list;
+        return $this->taxonomyList;
     }
 
     public function fetch()
     {
         global $wpdb;
 
-        $this->taxonomy_list = [];
+        $this->taxonomyList = [];
 
-        if (!$this->has_fields()) {
+        if (!$this->hasFields()) {
             return true;
         }
 
-        $taxonomies = $this->list_taxonomies();
-        $taxonomy_list = "'" . join("', '", $taxonomies) . "'";
+        $taxonomies = $this->listTaxonomies();
+        $taxonomyList = "'" . join("', '", $taxonomies) . "'";
 
         $query = "SELECT
             tt.term_id,
@@ -131,8 +131,8 @@ class Post_Taxonomies
         FROM $wpdb->term_relationships tr
         INNER JOIN $wpdb->term_taxonomy AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
         INNER JOIN $wpdb->terms AS t ON t.term_id = tt.term_id
-        WHERE tt.taxonomy IN ($taxonomy_list)
-            AND tr.object_id = $this->post_id";
+        WHERE tt.taxonomy IN ($taxonomyList)
+            AND tr.object_id = $this->postId";
 
         $results = $wpdb->get_results($query);
         if ($results === false) {
@@ -140,13 +140,13 @@ class Post_Taxonomies
                 'fetch_post_taxonomies_failed',
                 __('Sorry, fetching the post taxonomies failed.', 'peteklein'),
                 [
-                    'post_id' => $this->post_id,
+                    'post_id' => $this->postId,
                     'fields' => $this->fields
                 ]
             );
         }
 
-        $this->populate_from_results($results);
+        $this->populateFromResults($results);
 
         return true;
     }

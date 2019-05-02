@@ -2,25 +2,25 @@
 
 namespace PeteKlein\WP\PostCollection\Meta;
 
-class Post_Meta
+class PostMeta
 {
-    public $post_id;
+    public $postId;
     private $fields = [];
     private $values = [];
 
-    public function __construct(int $post_id)
+    public function __construct(int $postId)
     {
-        $this->post_id = $post_id;
+        $this->postId = $postId;
     }
 
-    public function add_field(string $key, $default, bool $single = true)
+    public function addField(string $key, $default, bool $single = true)
     {
-        $this->fields[] = new Post_Meta_Field($key, $default, $single);
+        $this->fields[] = new PostMetaField($key, $default, $single);
 
         return $this;
     }
 
-    public function get_field(string $key)
+    public function getField(string $key)
     {
         foreach ($this->fields as $field) {
             if ($field->key === $key) {
@@ -31,17 +31,17 @@ class Post_Meta
         return null;
     }
 
-    private function has_fields()
+    private function hasFields()
     {
         return !empty($this->fields);
     }
 
-    private function list_keys()
+    private function listKeys()
     {
         return array_column($this->fields, 'key');
     }
 
-    private function populate_missing_values()
+    private function populateMissingValues()
     {
         foreach ($this->fields as $field) {
             if (empty($this->values[$field->key])) {
@@ -50,9 +50,9 @@ class Post_Meta
         }
     }
 
-    public function set_value(string $key, string $value)
+    public function setValue(string $key, string $value)
     {
-        $field = $this->get_field($key);
+        $field = $this->getField($key);
         $unserializedValue = maybe_unserialize($value);
 
         if (empty($field)) {
@@ -78,13 +78,13 @@ class Post_Meta
         return $this;
     }
 
-    public function set_fields(array $fields)
+    public function setFields(array $fields)
     {
         foreach ($fields as $field) {
-            if (!($field instanceof Post_Meta_Field)) {
+            if (!($field instanceof PostMetaField)) {
                 return new \WP_Error(
                     'post_meta_field_needed',
-                    __('Sorry, all values passed must be an instance of Post_Meta_Field', 'peteklein'),
+                    __('Sorry, all values passed must be an instance of PostMetaField', 'peteklein'),
                     [
                         'field' => $field
                     ]
@@ -96,16 +96,16 @@ class Post_Meta
         return $this;
     }
 
-    public function populate_from_results(array $results)
+    public function populateFromResults(array $results)
     {
         foreach ($results as $result) {
             $key = $result->meta_key;
             $value = $result->meta_value;
             
-            $this->set_value($key, $value);
+            $this->setValue($key, $value);
         }
 
-        $this->populate_missing_values();
+        $this->populateMissingValues();
     }
 
     public function get(string $key)
@@ -129,18 +129,18 @@ class Post_Meta
         // empty values
         $this->values = [];
 
-        if (!$this->has_fields()) {
+        if (!$this->hasFields()) {
             return true;
         }
 
-        $keys = $this->list_keys();
-        $key_list = "'" . join("','", $keys) . "'";
+        $keys = $this->listKeys();
+        $keyList = "'" . join("','", $keys) . "'";
 
         $query = "SELECT 
             * 
         FROM $wpdb->postmeta
-        WHERE meta_key IN ($key_list)
-        AND post_id = $this->post_id";
+        WHERE meta_key IN ($keyList)
+        AND post_id = $this->postId";
 
         $results = $wpdb->get_results($query);
         if ($results === false) {
@@ -148,13 +148,13 @@ class Post_Meta
                 'fetch_post_meta_failed',
                 __('Sorry, fetching the post meta failed.', 'peteklein'),
                 [
-                    'post_id' => $this->post_id,
+                    'post_id' => $this->postId,
                     'fields' => $this->fields
                 ]
             );
         }
 
-        $this->populate_from_results($results);
+        $this->populateFromResults($results);
 
         return true;
     }
