@@ -96,4 +96,15 @@ abstract class PostCollection
     {
         return $this->posts;
     }
+
+    public function getPost(int $postId)
+    {
+        foreach ($this->posts as $post) {
+            if ($post->ID === $postId) {
+                return $post;
+            }
+        }
+
+        return null;
+    }
 }
