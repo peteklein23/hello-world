@@ -1,14 +1,21 @@
 # WordPress Post Collection
 
+_Note, this project is currently in development and syntax will change._
+
 Post Collections greatly reduces the number of queries made when
 grabbing featured images, meta data and taxonomies across multiple posts.
 
-_Note, this project is currently in development and will change._
-
 ## Why?
 
-WordPress is not efficient at querying taxonomies, metadata and featured images 
-across multiple posts. For example, if you have 20 posts and need to get a featured image, taxonomy term and single piece of metadata, fetching each of those in the loop would result in 60 extra queries. By batching those together in a Post Collection, those 60 queries be reduced to only 3 queries, and you get all the same data.
+WordPress is not efficient at querying taxonomies, metadata and featured 
+images across multiple posts. For example, if you have 20 posts and need 
+to get a featured image, taxonomy term and single piece of metadata, 
+fetching each of those in the loop would result in 60 extra queries. 
+
+By batching those together in a Post Collection, those 60 queries be 
+reduced to only 3 queries, and you get all the same data. It injects the 
+objects that store that data into the Post object itself for easy and 
+intuitive access 
 
 
 ## Installation
