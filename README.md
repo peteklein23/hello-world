@@ -3,6 +3,8 @@
 Post Collections greatly reduces the number of queries made when
 grabbing featured images, meta data and taxonomies across multiple posts.
 
+_Note, this project is currently in development and will change._
+
 ## Why?
 
 WordPress is not efficient at querying taxonomies, metadata and featured images 
@@ -167,7 +169,32 @@ $postDetail->fetch();
 
 get_header();
 ?>
-// TODO
+<table>
+    <tr>
+        <td>
+            <img src="<?php echo $post->featuredImages->get('thumbnail')->url; ?>" />
+        </td>
+        <td><?php echo $post->post_title; ?></td>
+        <td>
+            <ul>
+                <?php foreach ($post->taxonomies->get('category') as $term): ?>
+                    <li><?php echo $term->name ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </td>
+        <td>
+            <ul>
+                <?php foreach ($post->taxonomies->get('post_tag') as $term): ?>
+                    <li><?php echo $term->name ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </td>
+        <td>
+            <?php echo $post->meta->get('location'); ?>
+        </td>
+        <td><?php echo $post->meta->get('otherthing') ?></td>
+    </tr>
+</table>
 <?php
 get_footer();
 
