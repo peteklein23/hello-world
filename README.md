@@ -3,6 +3,12 @@
 Post Collections greatly reduces the number of queries made when
 grabbing featured images, meta data and taxonomies across multiple posts.
 
+## Why?
+
+WordPress is not efficient at querying taxonomies, metadata and featured images 
+across multiple posts. For example, if you have 20 posts and need to get a featured image, taxonomy term and single piece of metadata, fetching each of those in the loop would result in 60 extra queries. By batching those together in a Post Collection, those 60 queries become 3 queries and you get all the same data.
+
+
 ## Installation
 
 Add the dependency to `composer.json`. (This is still in alpha so expect changes.)
